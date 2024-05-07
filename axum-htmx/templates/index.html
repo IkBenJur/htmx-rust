@@ -1,0 +1,9 @@
+
+{% extends "base.html" %}
+
+{% block title %}Hello!{% endblock %}
+
+{% block content %}
+<h1 class="text-indigo-500">Wassup!</h1>
+<button hx-get="/clicked" hx-sawp="outerHTML">Get Htmx</button>
+{% endblock %}
