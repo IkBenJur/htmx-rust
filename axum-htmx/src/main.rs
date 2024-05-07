@@ -1,11 +1,19 @@
+use std::sync::{Arc, Mutex};
+
 use askama::Template;
 use axum::{
+    extract::State,
     http::StatusCode,
     response::{Html, IntoResponse, Response},
-    routing::get,
-    Router,
+    routing::{get, post},
+    Form, Router,
 };
+use serde::Deserialize;
 use tower_http::services::ServeDir;
+
+struct AppState {
+    todos: Mutex<Vec<String>>,
+}
 
 #[tokio::main]
 async fn main() {
@@ -13,11 +21,20 @@ async fn main() {
     tracing_subscriber::fmt::init();
 
     let assets_path = std::env::current_dir().unwrap();
+    let state = Arc::new(AppState {
+        todos: Mutex::new(vec![
+            String::from("rust"),
+            String::from("rustt"),
+            String::from("russst"),
+        ]),
+    });
+
     // build our application with a route
     let app = Router::new()
         // `GET /` goes to `root`
         .route("/", get(root))
-        .route("/clicked", get(clicked))
+        .route("/create-todo", post(create_todo))
+        .with_state(state)
         .nest_service(
             "/styles",
             ServeDir::new(format!("{}/styles", assets_path.to_str().unwrap())),
@@ -51,16 +68,42 @@ where
     }
 }
 
-#[derive(Template)]
-#[template(path = "index.html")]
-struct IndexTemplate {}
-async fn root() -> impl IntoResponse {
-    return HtmlTemplate(IndexTemplate {});
+#[derive(Template, Clone)]
+#[template(path = "todo-list.html")]
+struct TodoList {
+    todos: Vec<String>,
 }
 
 #[derive(Template)]
-#[template(path = "clicked.html")]
-struct ClickedTemplate {}
-async fn clicked() -> impl IntoResponse {
-    return HtmlTemplate(ClickedTemplate {});
+#[template(path = "index.html")]
+struct IndexTemplate {
+    todos: Vec<String>,
+}
+
+async fn root(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let todos = state.todos.lock().unwrap();
+
+    let template = IndexTemplate {
+        todos: todos.clone(),
+    };
+    return HtmlTemplate(template);
+}
+
+#[derive(Deserialize)]
+struct TodoForm {
+    todo: String,
+}
+
+async fn create_todo(
+    State(state): State<Arc<AppState>>,
+    Form(form): Form<TodoForm>,
+) -> impl IntoResponse {
+    let mut lock = state.todos.lock().unwrap();
+    lock.push(form.todo);
+
+    let template = TodoList {
+        todos: lock.clone(),
+    };
+
+    return HtmlTemplate(template);
 }

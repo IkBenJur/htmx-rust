@@ -1,9 +1,9 @@
+{% extends "base.html" %} {% block title %}Todo-htmx{% endblock %} {% block
+content %}
+<h1 class="text-indigo-500">Awesome todo app no one saw before!</h1>
+<form hx-post="create-todo" hx-target="#todos" hx-sawp="innerHTML">
+  <input id="todo" name="todo" type="text" />
+  <button type="submit">Add todo</button>
+</form>
 
-{% extends "base.html" %}
-
-{% block title %}Hello!{% endblock %}
-
-{% block content %}
-<h1 class="text-indigo-500">Wassup!</h1>
-<button hx-get="/clicked" hx-sawp="outerHTML">Get Htmx</button>
-{% endblock %}
+<ul id="todos">{% for todo in todos %} <li>{{ todo }}</li> {% endfor %}</div> {% endblock %}
